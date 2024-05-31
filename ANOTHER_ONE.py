@@ -9,11 +9,17 @@ RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.goog
 class BarcodeDetector:
     def __init__(self):
         self.barcode_detected = False
+        self.detector = cv2.QRCodeDetector()  # For QR codes; adapt for other barcode types if needed
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
 
         if not self.barcode_detected:
+            # Autofocus and enhance image quality
+            img = cv2.GaussianBlur(img, (5, 5), 0)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            _, img = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+            
             barcodes = pyzbar.decode(img)
             for barcode in barcodes:
                 x, y, w, h = barcode.rect
@@ -44,4 +50,3 @@ webrtc_ctx = webrtc_streamer(
 if st.session_state["barcode"]:
     st.write(f"Barcode detected: {st.session_state['barcode']}")
     webrtc_ctx.stop()
-
