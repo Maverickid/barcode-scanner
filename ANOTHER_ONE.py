@@ -1,59 +1,50 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
-import av
 import cv2
+import numpy as np
 from pyzbar import pyzbar
+from PIL import Image
 
-RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+def detect_barcode(image):
+    # Convert the image to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Detect barcodes in the image
+    barcodes = pyzbar.decode(gray)
+    return barcodes
 
-class BarcodeDetector:
-    def __init__(self):
-        self.barcode_detected = False
-        self.detector = cv2.QRCodeDetector()  # For QR codes; adapt for other barcode types if needed
-
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-
-        if not self.barcode_detected:
-            # Autofocus and enhance image quality
-            img = cv2.GaussianBlur(img, (5, 5), 0)
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _, img = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-
-            barcodes = pyzbar.decode(img)
-            for barcode in barcodes:
-                x, y, w, h = barcode.rect
-                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                barcode_info = barcode.data.decode('utf-8')
-                cv2.putText(img, barcode_info, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                self.barcode_detected = True
-                st.session_state["barcode"] = barcode_info
-
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+def draw_barcode_info(image, barcodes):
+    for barcode in barcodes:
+        # Get the bounding box of the barcode
+        x, y, w, h = barcode.rect
+        # Draw a rectangle around the barcode
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # Get the barcode data and type
+        barcode_info = barcode.data.decode('utf-8')
+        barcode_type = barcode.type
+        # Put the barcode data and type on the image
+        cv2.putText(image, f"{barcode_info} ({barcode_type})", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    return image
 
 st.title("Barcode Scanner")
 
-if "barcode" not in st.session_state:
-    st.session_state["barcode"] = None
+uploaded_file = st.file_uploader("Upload a picture of the barcode", type=["jpg", "jpeg", "png"])
 
-barcode_detector = BarcodeDetector()
+if uploaded_file is not None:
+    # Read the uploaded image
+    image = Image.open(uploaded_file)
+    image = np.array(image)
 
-webrtc_ctx = webrtc_streamer(
-    key="barcode-scanner",
-    mode=WebRtcMode.SENDRECV,
-    rtc_configuration=RTC_CONFIGURATION,
-    media_stream_constraints={
-        "video": {
-            "width": {"ideal": 1920},
-            "height": {"ideal": 1080},
-            "frameRate": {"ideal": 30},
-        },
-        "audio": False
-    },
-    video_processor_factory=lambda: barcode_detector,
-    async_processing=True,
-)
+    # Detect barcodes in the image
+    barcodes = detect_barcode(image)
 
-if st.session_state["barcode"]:
-    st.write(f"Barcode detected: {st.session_state['barcode']}")
-    webrtc_ctx.stop()
+    if barcodes:
+        st.success("Barcode detected!")
+        # Draw the barcode information on the image
+        image = draw_barcode_info(image, barcodes)
+        # Display the image with barcode information
+        st.image(image, caption='Detected barcodes', use_column_width=True)
+        for barcode in barcodes:
+            st.write(f"Barcode: {barcode.data.decode('utf-8')}, Type: {barcode.type}")
+    else:
+        st.warning("No barcode detected. Please try again with a clearer image.")
+else:
+    st.info("Please upload an image of the barcode.")
