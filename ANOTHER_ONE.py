@@ -19,7 +19,7 @@ class BarcodeDetector:
             img = cv2.GaussianBlur(img, (5, 5), 0)
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             _, img = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-            
+
             barcodes = pyzbar.decode(img)
             for barcode in barcodes:
                 x, y, w, h = barcode.rect
@@ -42,7 +42,14 @@ webrtc_ctx = webrtc_streamer(
     key="barcode-scanner",
     mode=WebRtcMode.SENDRECV,
     rtc_configuration=RTC_CONFIGURATION,
-    media_stream_constraints={"video": True, "audio": False},
+    media_stream_constraints={
+        "video": {
+            "width": {"ideal": 1920},
+            "height": {"ideal": 1080},
+            "frameRate": {"ideal": 30},
+        },
+        "audio": False
+    },
     video_processor_factory=lambda: barcode_detector,
     async_processing=True,
 )
