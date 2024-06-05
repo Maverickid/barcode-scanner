@@ -3,19 +3,18 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 import av
 import cv2
 from pyzbar import pyzbar
-import time
+import asyncio
 
 RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-
 
 class BarcodeDetector:
     def __init__(self):
         self.barcode_detected = False
         self.last_detection_time = 0
 
-    def recv(self, frame):
+    async def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
-        current_time = time.time()
+        current_time = asyncio.get_event_loop().time()
 
         if not self.barcode_detected or (current_time - self.last_detection_time > 0.5):  # 0.5-second delay
             barcodes = pyzbar.decode(img)
@@ -32,7 +31,7 @@ class BarcodeDetector:
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
-def main():
+async def main():
     st.title("Barcode Scanner")
 
     if "barcode" not in st.session_state:
@@ -49,14 +48,16 @@ def main():
         async_processing=True,
     )
 
-    if st.session_state["barcode"]:
-        st.write(f"Barcode detected: {st.session_state['barcode']}")
-        webrtc_ctx.stop()
-        return
+    while True:
+        await asyncio.sleep(0.1)
+        if st.session_state["barcode"]:
+            st.write(f"Barcode detected: {st.session_state['barcode']}")
+            webrtc_ctx.stop()
+            break
 
     st.write("Waiting for barcode detection...")
     st.write("Make sure the barcode is clearly visible in the video feed.")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
