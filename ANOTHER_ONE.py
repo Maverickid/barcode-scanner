@@ -1,50 +1,37 @@
-import streamlit as st
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
-import av
+import threading
 import cv2
+import streamlit as st
 from pyzbar import pyzbar
 
-RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+from streamlit_webrtc import webrtc_streamer
 
-class BarcodeDetector:
-    def __init__(self):
-        self.barcode_val = None
-        self.barcode_detected = False
+lock = threading.Lock()
+img_container = {"img": None}
 
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        
-        # Convert frame to grayscale
-        gray_frame = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+def video_frame_callback(frame):
+    img = frame.to_ndarray(format="bgr24")
+    with lock:
+        img_container["img"] = img
 
-        # Detect barcode
-        barcodes = pyzbar.decode(gray_frame)
-        if barcodes:
-            barcode_info = barcodes[0].data.decode('utf-8')
-            self.barcode_val = barcode_info
-            self.barcode_detected = True
-            print("Barcode detected:", self.barcode_val)
-            st.stop()
+    return frame
 
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+def detect_barcode():
+    while True:
+        with lock:
+            img = img_container["img"]
+        if img is not None:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            barcodes = pyzbar.decode(gray)
+            for barcode in barcodes:
+                barcode_data = barcode.data.decode("utf-8")
+                print("Barcode detected:", barcode_data)
+                st.write(f"Barcode detected: {barcode_data}")
+                # Stop the video stream
+                webrtc_streamer.stop()
+                break
 
-def main():
-    st.title("Barcode Scanner")
-    
-    # Create WebRTC streamer
-    webrtc_ctx = webrtc_streamer(
-        key="barcode-scanner",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration=RTC_CONFIGURATION,
-        media_stream_constraints={"video": True, "audio": False},
-        video_processor_factory=BarcodeDetector(),
-        async_processing=True,
-    )
+# Start barcode detection thread
+barcode_thread = threading.Thread(target=detect_barcode)
+barcode_thread.start()
 
-    print("Video processor:", webrtc_ctx.video_processor)
-
-    if webrtc_ctx.video_processor.barcode_detected:
-        st.write(f"Barcode detected: {webrtc_ctx.video_processor.barcode_val}")
-
-if __name__ == "__main__":
-    main()
+webrtc_streamer(key="example", video_frame_callback=video_frame_callback)
