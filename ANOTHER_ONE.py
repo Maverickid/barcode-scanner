@@ -41,6 +41,8 @@ def main():
         async_processing=True,
     )
 
+    print("Video processor:", webrtc_ctx.video_processor)
+
     if webrtc_ctx.video_processor.barcode_detected:
         st.write(f"Barcode detected: {webrtc_ctx.video_processor.barcode_val}")
 
