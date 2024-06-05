@@ -1,54 +1,32 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
-import av
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode, RTCConfiguration
 import cv2
 from pyzbar import pyzbar
-import time
 
-RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-
-class BarcodeDetector:
+class BarcodeDetector(VideoProcessorBase):
     def __init__(self):
-        self.barcode_val = None
-        self.barcode_detected = False
+        super().__init__()
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
-
         barcodes = pyzbar.decode(img)
+        
         for barcode in barcodes:
-            x, y, w, h = barcode.rect
-            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
             barcode_info = barcode.data.decode('utf-8')
-            cv2.putText(img, barcode_info, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            self.barcode_val = barcode_info
-            self.barcode_detected = True
-            print("Barcode detected 1:", self.barcode_val)
+            st.write(f"Barcode detected: {barcode_info}")
+            webrtc_ctx.stop()
+            return
 
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+        return frame
 
 st.title("Barcode Scanner")
-
-barcode_detected = False  # Variable to track if barcode is detected
-
-barcode_detector = BarcodeDetector()
 
 webrtc_ctx = webrtc_streamer(
     key="barcode-scanner",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration=RTC_CONFIGURATION,
+    rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
     media_stream_constraints={"video": True, "audio": False},
-    video_processor_factory=lambda: barcode_detector,
+    video_processor_factory=BarcodeDetector,
     async_processing=True,
 )
 
-# Short delay to allow for barcode detection
-time.sleep(0.1)
-
-if barcode_detector.barcode_val:
-    print("Barcode detected 2:", barcode_detector.barcode_val)
-    st.write(f"Barcode detected 3: {barcode_detector.barcode_val}")
-    barcode_detected = True
-
-if barcode_detected:
-    webrtc_ctx.stop()
