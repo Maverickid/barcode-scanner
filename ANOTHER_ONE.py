@@ -37,7 +37,7 @@ def main():
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={"video": True, "audio": False},
-        video_processor_factory=BarcodeDetector,
+        video_processor_factory=BarcodeDetector(),
         async_processing=True,
     )
 
