@@ -24,12 +24,12 @@ class BarcodeDetector:
             self.barcode_val = barcode_info
             self.barcode_detected = True
             print("Barcode detected 1:", self.barcode_val)
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-        self.barcode_detected = False  # Set flag to False if no barcode is detected
-        return av.VideoFrame.from_ndarray(img, format="bgr24")  # Return frame even if no barcode detected
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 st.title("Barcode Scanner")
+
+barcode_detected = False  # Variable to track if barcode is detected
 
 barcode_detector = BarcodeDetector()
 
@@ -45,10 +45,10 @@ webrtc_ctx = webrtc_streamer(
 # Short delay to allow for barcode detection
 time.sleep(0.1)
 
-print("Barcode detected flag:", barcode_detector.barcode_detected)
-
-if barcode_detector.barcode_detected:
-    print("Reached the condition for barcode detection.")
+if barcode_detector.barcode_val:
     print("Barcode detected 2:", barcode_detector.barcode_val)
     st.write(f"Barcode detected 3: {barcode_detector.barcode_val}")
-    st.stop()
+    barcode_detected = True
+
+if barcode_detected:
+    webrtc_ctx.stop()
