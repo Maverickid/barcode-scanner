@@ -26,7 +26,8 @@ class BarcodeDetector:
             print("Barcode detected 1:", self.barcode_val)
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-        return None
+        self.barcode_detected = False  # Set flag to False if no barcode is detected
+        return av.VideoFrame.from_ndarray(img, format="bgr24")  # Return frame even if no barcode detected
 
 st.title("Barcode Scanner")
 
