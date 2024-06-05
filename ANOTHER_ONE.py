@@ -24,6 +24,7 @@ class BarcodeDetector:
             self.barcode_val = barcode_info
             self.barcode_detected = True
             print(self.barcode_val)
+            webrtc_ctx.stop()  # Stop the camera stream when barcode is detected
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
@@ -40,9 +41,5 @@ webrtc_ctx = webrtc_streamer(
     async_processing=True,
 )
 
-# Short delay to allow for barcode detection
-time.sleep(0.1)
-
 if barcode_detector.barcode_val:
     st.write(f"Barcode detected: {barcode_detector.barcode_val}")
-    webrtc_ctx.stop()
