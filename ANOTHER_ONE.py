@@ -26,8 +26,6 @@ class BarcodeDetector:
             print(self.barcode_val)
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-        self.barcode_val = None
-        self.barcode_detected = False
         return None
 
 st.title("Barcode Scanner")
@@ -48,4 +46,4 @@ time.sleep(0.1)
 
 if barcode_detector.barcode_detected:
     st.write(f"Barcode detected: {barcode_detector.barcode_val}")
-    webrtc_ctx.stop()
+    st.stop()
