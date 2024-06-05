@@ -21,9 +21,10 @@ class BarcodeDetector:
             cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
             barcode_info = barcode.data.decode('utf-8')
             cv2.putText(img, barcode_info, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            self.barcode_val = barcode_info
-            self.barcode_detected = True
-            print(self.barcode_val)
+            if not self.barcode_detected:
+                self.barcode_val = barcode_info
+                self.barcode_detected = True
+                print(self.barcode_val)
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
@@ -40,9 +41,6 @@ webrtc_ctx = webrtc_streamer(
     async_processing=True,
 )
 
-# Short delay to allow for barcode detection
-time.sleep(0.1)
-
-if barcode_detector.barcode_val:
+if barcode_detector.barcode_detected:
     st.write(f"Barcode detected: {barcode_detector.barcode_val}")
     webrtc_ctx.stop()
