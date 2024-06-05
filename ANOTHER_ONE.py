@@ -27,6 +27,7 @@ class BarcodeDetector:
                 self.barcode_detected = True
                 self.last_detection_time = current_time
                 st.session_state["barcode"] = barcode_info
+                print(f"Barcode detected: {barcode_info}")
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
@@ -51,6 +52,10 @@ def main():
     if st.session_state["barcode"]:
         st.write(f"Barcode detected: {st.session_state['barcode']}")
         webrtc_ctx.stop()
+        return
+
+    st.write("Waiting for barcode detection...")
+    st.write("Make sure the barcode is clearly visible in the video feed.")
 
 
 if __name__ == "__main__":
