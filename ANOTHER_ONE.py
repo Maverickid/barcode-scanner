@@ -3,7 +3,7 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 import av
 import cv2
 from pyzbar import pyzbar
-import time
+import asyncio
 
 RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
 
@@ -11,7 +11,7 @@ class BarcodeDetector:
     def __init__(self):
         self.barcode_detected = False
 
-    def recv(self, frame):
+    async def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
 
         if not self.barcode_detected:
@@ -23,7 +23,7 @@ class BarcodeDetector:
                 cv2.putText(img, barcode_info, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 self.barcode_detected = True
                 st.session_state["barcode"] = barcode_info
-                time.sleep(0.5)  # Add a delay of 0.5 seconds
+                await asyncio.sleep(0.5)  # Add a non-blocking delay of 0.5 seconds
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
