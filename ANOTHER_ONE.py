@@ -3,7 +3,7 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 import av
 import cv2
 from pyzbar import pyzbar
-import asyncio
+import time
 
 RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
 
@@ -12,7 +12,7 @@ class BarcodeDetector:
         self.barcode_detected = False
         self.barcode_val = None
 
-    async def recv(self, frame):
+    def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
 
         if not self.barcode_detected:
@@ -25,11 +25,10 @@ class BarcodeDetector:
                 self.barcode_detected = True
                 self.barcode_val = barcode_info
                 st.session_state["barcode"] = barcode_info
-                await asyncio.sleep(0.5)  # Add a non-blocking delay of 0.5 seconds
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-async def main():
+def main():
     st.title("Barcode Scanner")
 
     if "barcode" not in st.session_state:
@@ -43,14 +42,14 @@ async def main():
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={"video": True, "audio": False},
         video_processor_factory=lambda: barcode_detector,
-        async_processing=True,
+        async_processing=False,
     )
 
     placeholder = st.empty()
     old_barcode = None
 
     while True:
-        await asyncio.sleep(0.1)  # Non-blocking sleep
+        time.sleep(0.1)  # Blocking sleep
         if st.session_state["barcode"] and st.session_state["barcode"] != old_barcode:
             old_barcode = st.session_state["barcode"]
             placeholder.empty()
@@ -59,4 +58,4 @@ async def main():
             break
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
