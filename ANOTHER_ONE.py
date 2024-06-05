@@ -24,11 +24,11 @@ class BarcodeDetector:
             self.barcode_val = barcode_info
             self.barcode_detected = True
             print(self.barcode_val)
-
-        if self.barcode_val:
             return av.VideoFrame.from_ndarray(img, format="bgr24")
-        else:
-            return None
+
+        self.barcode_val = None
+        self.barcode_detected = False
+        return None
 
 st.title("Barcode Scanner")
 
@@ -46,6 +46,6 @@ webrtc_ctx = webrtc_streamer(
 # Short delay to allow for barcode detection
 time.sleep(0.1)
 
-if barcode_detector.barcode_val:
+if barcode_detector.barcode_detected:
     st.write(f"Barcode detected: {barcode_detector.barcode_val}")
     webrtc_ctx.stop()
