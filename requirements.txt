@@ -3,4 +3,4 @@ streamlit-webrtc==0.47.7
 av==12.1.0
 opencv-python==4.6.0.66
 pyzbar==0.1.9
-threading
+threaded==4.2.0
