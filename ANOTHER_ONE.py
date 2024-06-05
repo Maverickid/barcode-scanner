@@ -24,9 +24,11 @@ class BarcodeDetector:
             self.barcode_val = barcode_info
             self.barcode_detected = True
             print(self.barcode_val)
-            break  # Break after detecting the first barcode
 
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+        if self.barcode_val:
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
+        else:
+            return None
 
 st.title("Barcode Scanner")
 
