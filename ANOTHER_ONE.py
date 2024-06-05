@@ -44,7 +44,10 @@ webrtc_ctx = webrtc_streamer(
 # Short delay to allow for barcode detection
 time.sleep(0.1)
 
+print("Barcode detected flag:", barcode_detector.barcode_detected)
+
 if barcode_detector.barcode_detected:
+    print("Reached the condition for barcode detection.")
     print("Barcode detected 2:", barcode_detector.barcode_val)
     st.write(f"Barcode detected 3: {barcode_detector.barcode_val}")
     st.stop()
