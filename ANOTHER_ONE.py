@@ -22,12 +22,16 @@ class BarcodeDetector:
             cv2.putText(img, barcode_info, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             self.barcode_val = barcode_info
             self.barcode_detected = True
+            st.session_state.barcode_val = barcode_info  # Update the session state
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 def main():
     st.title("Barcode Scanner")
+
+    if 'barcode_val' not in st.session_state:
+        st.session_state.barcode_val = None
 
     barcode_detector = BarcodeDetector()
 
@@ -40,15 +44,10 @@ def main():
         async_processing=True,
     )
 
-    while webrtc_ctx.state.playing:
-        if barcode_detector.barcode_detected:
-            st.session_state.barcode_val = barcode_detector.barcode_val
-            webrtc_ctx.stop()
-            break
-
-    # Display the detected barcode
-    if 'barcode_val' in st.session_state:
+    if st.session_state.barcode_val:
         st.write(f"Barcode detected: {st.session_state.barcode_val}")
+        if webrtc_ctx.state.playing:
+            webrtc_ctx.stop()
 
 if __name__ == "__main__":
     main()
