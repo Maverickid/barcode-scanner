@@ -43,18 +43,14 @@ def main():
         async_processing=True,
     )
 
+    def wait_for_barcode():
+        while not barcode_detector.barcode_detected:
+            time.sleep(0.1)  # Wait for 100ms
+        if barcode_detector.barcode_val:
+            st.session_state.barcode_val = barcode_detector.barcode_val
+            webrtc_ctx.stop()
+
     if webrtc_ctx.state.playing:
-        # Use a threading event to wait for the barcode detection
-        barcode_event = threading.Event()
-
-        def wait_for_barcode():
-            while not barcode_detector.barcode_detected:
-                barcode_event.wait(0.1)  # Wait for 100ms
-            if barcode_detector.barcode_val:
-                st.session_state.barcode_val = barcode_detector.barcode_val
-                webrtc_ctx.stop()
-
-        # Start a separate thread to wait for barcode detection
         threading.Thread(target=wait_for_barcode, daemon=True).start()
 
     # Display the detected barcode
