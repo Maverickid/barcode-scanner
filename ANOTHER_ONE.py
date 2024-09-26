@@ -1,53 +1,47 @@
+import os
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
-import av
-import cv2
-from pyzbar import pyzbar
+import pandas as pd
+from pandasai import Agent
 
-RTC_CONFIGURATION = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+# Set your PandasAI API key
+# Replace with your API key or set it in the environment variables
+os.environ["PANDASAI_API_KEY"] = "YOUR_API_KEY"
 
-class BarcodeDetector:
-    def __init__(self):
-        self.barcode_val = None
-        self.barcode_detected = False
+# Initialize the Streamlit app
+st.title("Pandas AI Data Analysis")
 
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
+# File uploader for Excel files
+uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx", "xls"])
 
-        barcodes = pyzbar.decode(img)
-        for barcode in barcodes:
-            x, y, w, h = barcode.rect
-            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            barcode_info = barcode.data.decode('utf-8')
-            cv2.putText(img, barcode_info, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            self.barcode_val = barcode_info
-            self.barcode_detected = True
-            st.session_state.barcode_val = barcode_info  # Update the session state
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
+# If a file is uploaded, proceed
+if uploaded_file:
+    try:
+        # Read the uploaded Excel file into a Pandas DataFrame
+        df = pd.read_excel(uploaded_file)
+        st.write("### Uploaded Data", df.head())  # Display the first few rows of the DataFrame
 
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+        # Initialize the Pandas AI Agent with the uploaded DataFrame
+        agent = Agent(df)
 
-def main():
-    st.title("Barcode Scanner")
+        # User question input
+        user_question = st.text_input("Ask a question about the uploaded data:")
 
-    if 'barcode_val' not in st.session_state:
-        st.session_state.barcode_val = None
+        # Process the user question when submitted
+        if user_question:
+            try:
+                with st.spinner("Analyzing..."):
+                    response = agent.chat(user_question)
+                # Display the response
+                st.write("### Answer", response)
 
-    barcode_detector = BarcodeDetector()
+                # Optional: If the response is a DataFrame, you can show it as a table
+                if isinstance(response, pd.DataFrame):
+                    st.write("### Resulting Data", response)
+                    st.line_chart(response)  # Show a chart if the response is a DataFrame
+            except Exception as e:
+                st.error(f"An error occurred while analyzing the data: {e}")
 
-    webrtc_ctx = webrtc_streamer(
-        key="barcode-scanner",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration=RTC_CONFIGURATION,
-        media_stream_constraints={"video": True, "audio": False},
-        video_processor_factory=lambda: barcode_detector,
-        async_processing=True,
-    )
-
-    if st.session_state.barcode_val:
-        st.write(f"Barcode detected: {st.session_state.barcode_val}")
-        if webrtc_ctx.state.playing:
-            webrtc_ctx.stop()
-
-if __name__ == "__main__":
-    main()
+    except Exception as e:
+        st.error(f"Error reading the Excel file: {e}")
+else:
+    st.info("Please upload an Excel file to get started.")
